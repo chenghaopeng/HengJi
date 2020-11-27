@@ -11,6 +11,8 @@ public class ServiceImpl {
 
     public String token;
 
+    public String uic;
+
     ServiceImpl() {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://192.168.2.112:4523/mock/365548/")
