@@ -96,6 +96,8 @@ public class LoginActivity extends AppCompatActivity {
                         MyToast.show(getApplicationContext(), "手机号或验证码错误！");
                         return;
                     }
+                    txtPhone.setText("");
+                    txtCode.setText("");
                     ServiceImpl.instance.token = (String) response.body().data;
                     MyToast.show(getApplicationContext(), "欢迎使用！");
                     startActivity(new Intent(getApplicationContext(), MainActivity.class));
