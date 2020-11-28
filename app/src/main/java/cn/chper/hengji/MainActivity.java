@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             String uuidRaw = uuidBuilder.toString();
             String uuid = uuidRaw.substring(0, 8) + "-" + uuidRaw.substring(8, 12) + "-" + uuidRaw.substring(12, 16) + "-" + uuidRaw.substring(16, 20) + "-" + uuidRaw.substring(20);
             Log.d("[蓝牙]", "探测到" + uuid);
-            writeUic(uuid);
+            validateAndWriteUic(uuid);
         }
 
         @Override
@@ -181,7 +181,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 ServiceImpl.instance.uic = (String) response.body().data;
                 lblUic.setText(ServiceImpl.instance.uic);
-                writeUic(ServiceImpl.instance.uic);
                 stopAdvertise();
                 startAdvertise(ServiceImpl.instance.uic);
             }
@@ -191,6 +190,24 @@ public class MainActivity extends AppCompatActivity {
                 MyToast.show(getApplicationContext(), "请求失败！");
             }
         });
+    }
+
+    private void validateAndWriteUic(String uic) {
+        ServiceImpl.instance.service.judgeUic(uic).enqueue(new Callback<SimpleResponse>() {
+            @Override
+            public void onResponse(Call<SimpleResponse> call, Response<SimpleResponse> response) {
+                if (response.isSuccessful() && response.body().code == 0) {
+                    writeUic(uic);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<SimpleResponse> call, Throwable t) {
+                MyToast.show(getApplicationContext(), "无法连接网络！");
+                t.printStackTrace();
+            }
+        });
+
     }
 
     private void writeUic(String uic) {
