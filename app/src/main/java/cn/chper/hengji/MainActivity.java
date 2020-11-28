@@ -13,8 +13,10 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.BufferedWriter;
@@ -36,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView lblUic;
 
+    private Button btnCheck;
+
     private BluetoothManager bluetoothManager;
 
     private BluetoothAdapter bluetoothAdapter;
@@ -49,6 +53,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         lblUic = findViewById(R.id.lblUic);
+        btnCheck = findViewById(R.id.btnCheck);
+        btnCheck.setOnClickListener(view -> {
+            startActivity(new Intent(this, UicActivity.class));
+        });
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
@@ -226,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
         FileOutputStream out;
         BufferedWriter writer = null;
         try {
-            out = openFileOutput("uics", Context.MODE_PRIVATE);
+            out = openFileOutput("uics", Context.MODE_APPEND);
             writer = new BufferedWriter(new OutputStreamWriter(out));
             writer.write(uic + "\n");
         }

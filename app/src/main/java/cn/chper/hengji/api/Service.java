@@ -19,7 +19,6 @@ public interface Service {
     @POST("uic/refresh")
     Call<SimpleResponse> refreshUic(@Part("token") String token);
 
-    @Multipart
     @POST("uic/risk")
     Call<SimpleResponse> riskUic();
 
