@@ -3,15 +3,24 @@ package cn.chper.hengji;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.util.List;
 
 import cn.chper.hengji.api.Service;
 import cn.chper.hengji.api.ServiceImpl;
@@ -31,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothAdapter bluetoothAdapter;
 
+    private BluetoothLeScanner bluetoothLeScanner;
+
     private BluetoothLeAdvertiser bluetoothLeAdvertiser;
 
     @Override
@@ -40,8 +51,15 @@ public class MainActivity extends AppCompatActivity {
         lblUic = findViewById(R.id.lblUic);
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
+        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         bluetoothLeAdvertiser = bluetoothAdapter.getBluetoothLeAdvertiser();
+        if (bluetoothManager == null || bluetoothAdapter == null || bluetoothLeAdvertiser == null || bluetoothLeScanner == null) {
+            MyToast.show(this, "请打开蓝牙后再使用！");
+            this.finish();
+            return;
+        }
         refreshUic();
+        startScan();
     }
 
     @Override
@@ -85,6 +103,10 @@ public class MainActivity extends AppCompatActivity {
         bluetoothLeAdvertiser.startAdvertising(advertiseSettings, advertiseData, advertiseCallback);
     }
 
+    private void stopAdvertise() {
+        bluetoothLeAdvertiser.stopAdvertising(advertiseCallback);
+    }
+
     private AdvertiseCallback advertiseCallback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
@@ -99,6 +121,56 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private void startScan() {
+        Log.d("[蓝牙]", "接收！");
+        bluetoothLeScanner.startScan(scanCallback);
+    }
+
+    private void stopScan() {
+        bluetoothLeScanner.stopScan(scanCallback);
+    }
+
+    private ScanCallback scanCallback = new ScanCallback() {
+
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            super.onScanResult(callbackType, result);
+            byte[] scanRecord = result.getScanRecord().getBytes();
+            int startIndex = 2;
+            boolean iBeaconFound = false;
+            while (startIndex <= 5) {
+                if (((int) scanRecord[startIndex + 2] & 0xff) == 0x02 && ((int) scanRecord[startIndex + 3] & 0xff) == 0x15) {
+                    iBeaconFound = true;
+                    break;
+                }
+                startIndex++;
+            }
+            if (!iBeaconFound) return;
+            int major = (scanRecord[startIndex + 20] & 0xff) * 0x100 + (scanRecord[startIndex + 21] & 0xff);
+            int minor = (scanRecord[startIndex + 22] & 0xff) * 0x100 + (scanRecord[startIndex + 23] & 0xff);
+            if (major != 7947 || minor != 8036) return;
+            byte[] uuidByte = new byte[16];
+            System.arraycopy(scanRecord, startIndex + 4, uuidByte, 0, 16);
+            StringBuilder uuidBuilder = new StringBuilder();
+            for (int i = 0; i < 16; ++i) {
+                int x = scanRecord[i] & 0xff;
+                String y = Integer.toHexString(x);
+                if (y.length() < 2) uuidBuilder.append("0");
+                uuidBuilder.append(x);
+            }
+            String uuidRaw = uuidBuilder.toString();
+            String uuid = uuidRaw.substring(0, 8) + "-" + uuidRaw.substring(8, 12) + "-" + uuidRaw.substring(12, 16) + "-" + uuidRaw.substring(16, 20) + "-" + uuidRaw.substring(20);
+            Log.d("[蓝牙]", "探测到" + uuid);
+            writeUic(uuid);
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            super.onScanFailed(errorCode);
+            Log.d("[蓝牙]", "搜索失败！");
+        }
+    };
+
     private void refreshUic() {
         ServiceImpl.instance.service.refreshUic(ServiceImpl.instance.token).enqueue(new Callback<SimpleResponse>() {
             @Override
@@ -109,6 +181,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 ServiceImpl.instance.uic = (String) response.body().data;
                 lblUic.setText(ServiceImpl.instance.uic);
+                writeUic(ServiceImpl.instance.uic);
+                stopAdvertise();
                 startAdvertise(ServiceImpl.instance.uic);
             }
 
@@ -117,6 +191,26 @@ public class MainActivity extends AppCompatActivity {
                 MyToast.show(getApplicationContext(), "请求失败！");
             }
         });
+    }
+
+    private void writeUic(String uic) {
+        FileOutputStream out;
+        BufferedWriter writer = null;
+        try {
+            out = openFileOutput("uics", Context.MODE_PRIVATE);
+            writer = new BufferedWriter(new OutputStreamWriter(out));
+            writer.write(uic + "\n");
+        }
+        catch (Exception e) {
+            MyToast.show(this, "文件写入失败！");
+            e.printStackTrace();
+        }
+        try {
+            if (writer != null) writer.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
