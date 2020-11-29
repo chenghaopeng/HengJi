@@ -215,7 +215,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<SimpleResponse> call, Response<SimpleResponse> response) {
                 if (response.isSuccessful() && response.body().code == 0) {
-                    MyToast.show(getApplicationContext(), "探测到 " + uic);
                     lblDetect.setText("探测到 " + uic);
                     writeUic(uic);
                     Log.d("[写入]", uic);
