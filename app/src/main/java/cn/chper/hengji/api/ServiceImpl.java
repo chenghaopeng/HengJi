@@ -15,7 +15,7 @@ public class ServiceImpl {
 
     ServiceImpl() {
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://192.168.2.112:4523/mock/365548/")
+                .baseUrl("http://ali.chper.cn:89/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         service = retrofit.create(Service.class);

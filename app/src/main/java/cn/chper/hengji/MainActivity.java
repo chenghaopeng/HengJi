@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView lblUic;
 
+    private TextView lblDetect;
+
     private Button btnCheck;
 
     private BluetoothManager bluetoothManager;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         lblUic = findViewById(R.id.lblUic);
+        lblDetect = findViewById(R.id.lblDetect);
         btnCheck = findViewById(R.id.btnCheck);
         btnCheck.setOnClickListener(view -> {
             startActivity(new Intent(this, UicActivity.class));
@@ -212,6 +215,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<SimpleResponse> call, Response<SimpleResponse> response) {
                 if (response.isSuccessful() && response.body().code == 0) {
+                    MyToast.show(getApplicationContext(), "探测到 " + uic);
+                    lblDetect.setText("探测到 " + uic);
                     writeUic(uic);
                     Log.d("[写入]", uic);
                 }
